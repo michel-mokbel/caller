@@ -39,21 +39,6 @@ class PermissionUtils {
     return false;
   }
 
-  static String _getPermissionName(Permission permission) {
-    switch (permission) {
-      case Permission.contacts:
-        return 'Contacts';
-      case Permission.microphone:
-        return 'Microphone';
-      case Permission.notification:
-        return 'Notifications';
-      case Permission.phone:
-        return 'Phone (Call Logs)';
-      default:
-        return permission.toString().split('.').last;
-    }
-  }
-
   static void _showSettingsDialog(BuildContext context) {
     showDialog(
       context: context,

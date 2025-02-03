@@ -17,7 +17,6 @@ class RegularContactDetailsScreen extends StatefulWidget {
 
 class _RegularContactDetailsScreenState extends State<RegularContactDetailsScreen> {
   late Contact _contact;
-  bool _isEditing = false;
   bool _isFavorite = false;
 
   @override
@@ -53,15 +52,7 @@ class _RegularContactDetailsScreenState extends State<RegularContactDetailsScree
     }
   }
 
-  Future<void> _openMap(PostalAddress address) async {
-    final query = Uri.encodeComponent(
-      '${address.street}, ${address.city}, ${address.region} ${address.postcode}, ${address.country}'
-    );
-    final uri = Uri.parse('https://maps.google.com/?q=$query');
-    if (await url_launcher.canLaunchUrl(uri)) {
-      await url_launcher.launchUrl(uri);
-    }
-  }
+
 
   Future<void> _editBasicInfo() async {
     final nameController = TextEditingController(text: _contact.displayName);

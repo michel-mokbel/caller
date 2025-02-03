@@ -19,7 +19,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   String _selectedLetter = '#';
-  Map<String, List<Contact>> _groupedContacts = {};
+  final Map<String, List<Contact>> _groupedContacts = {};
 
   @override
   void initState() {

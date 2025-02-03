@@ -16,7 +16,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   List<Contact> _favorites = [];
   bool _isLoading = true;
   String? _errorMessage;
-  Map<String, List<Contact>> _groupedFavorites = {};
+  final Map<String, List<Contact>> _groupedFavorites = {};
 
   @override
   void initState() {
