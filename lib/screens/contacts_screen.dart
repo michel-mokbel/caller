@@ -133,68 +133,130 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Widget _buildContactItem(Contact contact) {
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => RegularContactDetailsScreen(contact: contact),
-          ),
-        );
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-        child: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: Theme.of(context).primaryColor,
-              child: Text(
-                contact.displayName?.characters.first.toUpperCase() ?? '?',
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    contact.displayName ?? 'Unknown',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
+    return Dismissible(
+      key: Key(contact.identifier ?? ''),
+      direction: DismissDirection.endToStart,
+      confirmDismiss: (direction) async {
+        return await showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Delete Contact'),
+              content: Text('Are you sure you want to delete ${contact.displayName}?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.red,
                   ),
-                  if (contact.phones?.isNotEmpty ?? false)
-                    Text(
-                      contact.phones!.first.value ?? '',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (contact.phones?.isNotEmpty ?? false) ...[
-                  IconButton(
-                    icon: Icon(Icons.phone, color: Colors.grey[600], size: 20),
-                    onPressed: () => _makeCall(contact.phones!.first.value!),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.message, color: Colors.grey[600], size: 20),
-                    onPressed: () => _sendSMS(contact.phones!.first.value!),
-                  ),
-                ],
-                IconButton(
-                  icon: Icon(Icons.task, color: Colors.grey[600], size: 20),
-                  onPressed: () => _showAddTaskDialog(contact.identifier!),
+                  child: const Text('Delete'),
                 ),
               ],
+            );
+          },
+        );
+      },
+      onDismissed: (direction) async {
+        try {
+          await ContactsService.deleteContact(contact);
+          _loadContacts();
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${contact.displayName} deleted'),
+              action: SnackBarAction(
+                label: 'Undo',
+                onPressed: () async {
+                  await ContactsService.addContact(contact);
+                  _loadContacts();
+                },
+              ),
             ),
-          ],
+          );
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to delete contact')),
+          );
+          _loadContacts(); // Refresh the list to restore the contact
+        }
+      },
+      background: Container(
+        color: Colors.red,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 16.0),
+        child: const Icon(
+          Icons.delete,
+          color: Colors.white,
+        ),
+      ),
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => RegularContactDetailsScreen(contact: contact),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: Theme.of(context).primaryColor,
+                child: Text(
+                  contact.displayName?.characters.first.toUpperCase() ?? '?',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      contact.displayName ?? 'Unknown',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (contact.phones?.isNotEmpty ?? false)
+                      Text(
+                        contact.phones!.first.value ?? '',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (contact.phones?.isNotEmpty ?? false) ...[
+                    IconButton(
+                      icon: Icon(Icons.phone, color: Colors.grey[600], size: 20),
+                      onPressed: () => _makeCall(contact.phones!.first.value!),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.message, color: Colors.grey[600], size: 20),
+                      onPressed: () => _sendSMS(contact.phones!.first.value!),
+                    ),
+                  ],
+                  IconButton(
+                    icon: Icon(Icons.task, color: Colors.grey[600], size: 20),
+                    onPressed: () => _showAddTaskDialog(contact.identifier!),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -307,8 +369,73 @@ class _ContactsScreenState extends State<ContactsScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // TODO: Implement add contact functionality
+        onPressed: () async {
+          final nameController = TextEditingController();
+          final phoneController = TextEditingController();
+          
+          final result = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('New Contact'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(labelText: 'Name'),
+                    autofocus: true,
+                  ),
+                  TextField(
+                    controller: phoneController,
+                    decoration: const InputDecoration(labelText: 'Phone'),
+                    keyboardType: TextInputType.phone,
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Create'),
+                ),
+              ],
+            ),
+          );
+
+          if (result == true && mounted && nameController.text.isNotEmpty) {
+            try {
+              // Create a new contact with basic info
+              final newContact = Contact();
+              newContact.givenName = nameController.text;
+              newContact.familyName = '';
+              newContact.displayName = nameController.text;
+              
+              if (phoneController.text.isNotEmpty) {
+                newContact.phones = [Item(label: 'mobile', value: phoneController.text)];
+              }
+
+              // Add the contact
+              await ContactsService.addContact(newContact);
+              
+              if (!mounted) return;
+              
+              // Refresh the contacts list
+              await _loadContacts();
+              
+              // Show success message
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Contact created successfully')),
+              );
+            } catch (e) {
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Failed to add contact: ${e.toString()}')),
+              );
+            }
+          }
         },
         child: const Icon(Icons.person_add),
       ),
