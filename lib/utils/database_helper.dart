@@ -114,14 +114,14 @@ class DatabaseHelper {
   // Tasks CRUD operations
   Future<ContactTask> createTask(ContactTask task) async {
     final db = await database;
-    final id = await db.insert('tasks', task.toMap());
+    final id = await db.insert('contact_tasks', task.toMap());
     return task.copyWith(id: id);
   }
 
   Future<List<ContactTask>> getTasksForContact(String contactId) async {
     final db = await database;
     final List<Map<String, dynamic>> maps = await db.query(
-      'tasks',
+      'contact_tasks',
       where: 'contact_id = ?',
       whereArgs: [contactId],
       orderBy: 'due_date ASC',
@@ -132,7 +132,7 @@ class DatabaseHelper {
   Future<int> updateTask(ContactTask task) async {
     final db = await database;
     return db.update(
-      'tasks',
+      'contact_tasks',
       task.toMap(),
       where: 'id = ?',
       whereArgs: [task.id],
@@ -142,7 +142,7 @@ class DatabaseHelper {
   Future<int> deleteTask(int id) async {
     final db = await database;
     return await db.delete(
-      'tasks',
+      'contact_tasks',
       where: 'id = ?',
       whereArgs: [id],
     );
