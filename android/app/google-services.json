@@ -1,0 +1,67 @@
+{
+  "project_info": {
+    "project_number": "401678566917",
+    "project_id": "movie-magic-box",
+    "storage_bucket": "movie-magic-box.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:401678566917:android:0456a35ab10426c4e2be6c",
+        "android_client_info": {
+          "package_name": "com.appadsrocket.contactvault"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjwV5NccFqfchdsi9moXxJWXjWjBc_O6A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:401678566917:android:f2dd04e7ca5b9157e2be6c",
+        "android_client_info": {
+          "package_name": "com.mobiapp.moviemagicbox"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjwV5NccFqfchdsi9moXxJWXjWjBc_O6A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:401678566917:android:d0c6493fb026734ee2be6c",
+        "android_client_info": {
+          "package_name": "com.mobiapp.sportsmagicbox"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBjwV5NccFqfchdsi9moXxJWXjWjBc_O6A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

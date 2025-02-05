@@ -57,6 +57,16 @@ class DatabaseHelper {
         created_at TEXT NOT NULL
       )
     ''');
+
+    await db.execute('''
+      CREATE TABLE blocked_numbers(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        phone_number TEXT NOT NULL UNIQUE,
+        contact_name TEXT,
+        reason TEXT,
+        blocked_at INTEGER NOT NULL
+      )
+    ''');
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
@@ -177,6 +187,50 @@ class DatabaseHelper {
       'secure_contacts',
       where: 'id = ?',
       whereArgs: [id],
+    );
+  }
+
+  // Spam Blocking operations
+  Future<Set<String>> getBlockedNumbersSet() async {
+    final db = await database;
+    final List<Map<String, dynamic>> blockedNumbers = await db.query('blocked_numbers');
+    return blockedNumbers.map((number) => number['phone_number'] as String).toSet();
+  }
+
+  Future<bool> isNumberBlocked(String phoneNumber) async {
+    final db = await database;
+    final result = await db.query(
+      'blocked_numbers',
+      where: 'phone_number = ?',
+      whereArgs: [phoneNumber],
+    );
+    return result.isNotEmpty;
+  }
+
+  Future<void> blockNumber(String phoneNumber, {String? contactName, String? reason}) async {
+    final db = await database;
+    await db.insert('blocked_numbers', {
+      'phone_number': phoneNumber,
+      'contact_name': contactName,
+      'reason': reason,
+      'blocked_at': DateTime.now().millisecondsSinceEpoch,
+    });
+  }
+
+  Future<void> unblockNumber(String phoneNumber) async {
+    final db = await database;
+    await db.delete(
+      'blocked_numbers',
+      where: 'phone_number = ?',
+      whereArgs: [phoneNumber],
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> getBlockedNumbers() async {
+    final db = await database;
+    return await db.query(
+      'blocked_numbers',
+      orderBy: 'blocked_at DESC',
     );
   }
 

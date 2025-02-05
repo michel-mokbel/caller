@@ -38,7 +38,7 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                     ),
                     const Text(
-                      'Caller',
+                      'Vault Book',
                       style: TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
