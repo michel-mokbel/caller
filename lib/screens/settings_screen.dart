@@ -77,25 +77,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _shareApp() async {
-    const String appName = 'Caller App';
-    const String description =
-        'Check out this awesome contacts app! It helps you manage your contacts, track calls, and keep your important contacts secure.';
-    const String downloadLink = 'Coming soon to App Store and Play Store!';
+    const String appURL = 'https://apps.apple.com/us/app/vault-book/id6741470168';
 
-    const String shareText = '''
-$appName
 
-$description
-
-$downloadLink
-''';
 
     try {
       final box = context.findRenderObject() as RenderBox?;
 
-      await Share.share(
-        shareText,
-        subject: appName,
+      await Share.share(appURL,
         sharePositionOrigin: box!.localToGlobal(Offset.zero) & box.size,
       );
     } catch (e) {
