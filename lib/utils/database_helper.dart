@@ -23,7 +23,7 @@ class DatabaseHelper {
 
     return await openDatabase(
       path,
-      version: 3,
+      version: 4,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -34,7 +34,9 @@ class DatabaseHelper {
       CREATE TABLE secure_contacts(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         encrypted_data TEXT NOT NULL,
-        is_favorite INTEGER DEFAULT 0
+        is_favorite INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
       )
     ''');
 
@@ -88,6 +90,22 @@ class DatabaseHelper {
         ''');
       } catch (e) {
         debugPrint('Error creating favorite_contacts table: $e');
+      }
+    }
+
+    if (oldVersion < 4) {
+      try {
+        // Add created_at and updated_at columns to secure_contacts
+        await db.execute('''
+          ALTER TABLE secure_contacts
+          ADD COLUMN created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ''');
+        await db.execute('''
+          ALTER TABLE secure_contacts
+          ADD COLUMN updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ''');
+      } catch (e) {
+        debugPrint('Error adding timestamp columns to secure_contacts: $e');
       }
     }
   }

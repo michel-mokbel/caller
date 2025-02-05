@@ -133,7 +133,6 @@ class _SecureContactsScreenState extends State<SecureContactsScreen> {
           _isVaultUnlocked = true;
           _isLoading = false;
         });
-        _passwordController.clear();
       } else {
         setState(() {
           _isLoading = false;
@@ -212,6 +211,11 @@ class _SecureContactsScreenState extends State<SecureContactsScreen> {
     final emailController = TextEditingController();
     final companyController = TextEditingController();
 
+    String? name;
+    String? phone;
+    String? email;
+    String? company;
+
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -270,6 +274,11 @@ class _SecureContactsScreenState extends State<SecureContactsScreen> {
                 );
                 return;
               }
+              // Store values before disposing controllers
+              name = nameController.text.trim();
+              phone = phoneController.text.trim();
+              email = emailController.text.trim();
+              company = companyController.text.trim();
               Navigator.of(context).pop(true);
             },
             child: const Text('Create'),
@@ -278,7 +287,13 @@ class _SecureContactsScreenState extends State<SecureContactsScreen> {
       ),
     );
 
-    if (result == true) {
+    // // Dispose controllers immediately after dialog closes
+    // nameController.dispose();
+    // phoneController.dispose();
+    // emailController.dispose();
+    // companyController.dispose();
+
+    if (result == true && name != null) {
       try {
         setState(() {
           _isLoading = true;
@@ -286,24 +301,24 @@ class _SecureContactsScreenState extends State<SecureContactsScreen> {
         });
 
         final contactData = {
-          'displayName': nameController.text.trim(),
-          'phones': phoneController.text.trim().isNotEmpty
+          'displayName': name,
+          'phones': phone?.isNotEmpty == true
               ? [
                   {
                     'label': 'mobile',
-                    'value': phoneController.text.trim(),
+                    'value': phone,
                   }
                 ]
               : [],
-          'emails': emailController.text.trim().isNotEmpty
+          'emails': email?.isNotEmpty == true
               ? [
                   {
                     'label': 'email',
-                    'value': emailController.text.trim(),
+                    'value': email,
                   }
                 ]
               : [],
-          'company': companyController.text.trim(),
+          'company': company ?? '',
         };
 
         final jsonString = jsonEncode(contactData);
@@ -323,11 +338,6 @@ class _SecureContactsScreenState extends State<SecureContactsScreen> {
         });
       }
     }
-
-    nameController.dispose();
-    phoneController.dispose();
-    emailController.dispose();
-    companyController.dispose();
   }
 
   Widget _buildErrorMessage() {
@@ -348,6 +358,7 @@ class _SecureContactsScreenState extends State<SecureContactsScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          const SizedBox(height: 56),
           const Text(
             'Set up Secure Contacts Vault',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -517,61 +528,120 @@ class _SecureContactsScreenState extends State<SecureContactsScreen> {
                     final phones = contactData['phones'] as List<dynamic>?;
                     final emails = contactData['emails'] as List<dynamic>?;
 
-                    return Card(
-                      margin: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 8.0,
-                      ),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => SecureContactDetailsScreen(contact: contact),
+                    return Dismissible(
+                      key: Key('secure-contact-${contact.id}'),
+                      direction: DismissDirection.endToStart,
+                      confirmDismiss: (direction) async {
+                        return await showDialog<bool>(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text('Delete Secure Contact'),
+                              content: Text('Are you sure you want to delete ${contactData['displayName'] as String? ?? 'this contact'}?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(true),
+                                  child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
+                            );
+                          },
+                        ) ?? false;
+                      },
+                      onDismissed: (direction) async {
+                        try {
+                          await DatabaseHelper.instance.deleteSecureContact(contact.id!);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${contactData['displayName'] as String? ?? 'Contact'} deleted'),
+                              action: SnackBarAction(
+                                label: 'Undo',
+                                onPressed: () async {
+                                  await DatabaseHelper.instance.createSecureContact(contact);
+                                  await _loadSecureContacts();
+                                },
+                              ),
                             ),
                           );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Row(
-                            children: [
-                              CircleAvatar(
-                                child: Text(
-                                  (contactData['displayName'] as String?)?.characters.first.toUpperCase() ?? '?',
-                                  style: const TextStyle(color: Colors.white),
-                                ),
+                          await _loadSecureContacts();
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Failed to delete contact')),
+                          );
+                          await _loadSecureContacts();
+                        }
+                      },
+                      background: Container(
+                        color: Colors.red,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 16.0),
+                        child: const Icon(
+                          Icons.delete,
+                          color: Colors.white,
+                        ),
+                      ),
+                      child: Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 8.0,
+                        ),
+                        child: InkWell(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => SecureContactDetailsScreen(contact: contact),
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      contactData['displayName'] as String? ?? 'Unknown',
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    if (phones?.isNotEmpty ?? false)
-                                      Text(
-                                        phones!.first['value'] as String? ?? 'No phone number',
-                                        style: Theme.of(context).textTheme.bodyMedium,
-                                      ),
-                                    if (emails?.isNotEmpty ?? false)
-                                      Text(
-                                        emails!.first['value'] as String? ?? 'No email',
-                                        style: Theme.of(context).textTheme.bodySmall,
-                                      ),
-                                  ],
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  child: Text(
+                                    (contactData['displayName'] as String?)?.characters.first.toUpperCase() ?? '?',
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
                                 ),
-                              ),
-                              if (contact.isFavorite)
-                                const Icon(
-                                  Icons.star,
-                                  color: Colors.yellow,
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        contactData['displayName'] as String? ?? 'Unknown',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      if (phones?.isNotEmpty ?? false)
+                                        Text(
+                                          phones!.first['value'] as String? ?? 'No phone number',
+                                          style: Theme.of(context).textTheme.bodyMedium,
+                                        ),
+                                      if (emails?.isNotEmpty ?? false)
+                                        Text(
+                                          emails!.first['value'] as String? ?? 'No email',
+                                          style: Theme.of(context).textTheme.bodySmall,
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                            ],
+                                if (contact.isFavorite)
+                                  const Icon(
+                                    Icons.star,
+                                    color: Colors.yellow,
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
