@@ -26,12 +26,31 @@ class PhoneUtils {
       path: phoneNumber,
     );
 
-    if (await canLaunchUrl(launchUri)) {
+    try {
+      bool canMakeCall = await canLaunchUrl(launchUri);
+      
+      if (!canMakeCall) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('This device does not support making phone calls'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+        return;
+      }
+
       await launchUrl(launchUri);
-    } else {
+    } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Could not launch phone app')),
+          SnackBar(
+            content: Text(e.toString().contains('NO_ACTIVITY')
+                ? 'This device does not support making phone calls'
+                : 'Could not launch phone app'),
+            duration: const Duration(seconds: 3),
+          ),
         );
       }
     }

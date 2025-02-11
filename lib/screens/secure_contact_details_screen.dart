@@ -54,6 +54,10 @@ class _SecureContactDetailsScreenState extends State<SecureContactDetailsScreen>
     final uri = Uri.parse('tel:$phoneNumber');
     if (await url_launcher.canLaunchUrl(uri)) {
       await url_launcher.launchUrl(uri);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not launch the call on this device')),
+      );
     }
   }
 

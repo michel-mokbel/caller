@@ -36,25 +36,21 @@ class _DialScreenState extends State<DialScreen> {
     if (_numberController.text.isEmpty) return;
 
     // Format the phone number by removing any non-digit characters except +
-    String formattedNumber = _numberController.text.replaceAll(RegExp(r'[^\d+]'), '');
-    
     final Uri callUri = Uri(
-      scheme: 'tel',
-      path: formattedNumber,
-    );
+        scheme: 'tel',
+        path: _numberController.text,
+      );
 
     try {
       if (await canLaunchUrl(callUri)) {
         await launchUrl(callUri);
-        debugPrint('Calling $formattedNumber...');
+        print('Calling ...');
       } else {
-        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not launch the call to $formattedNumber')),
+          const SnackBar(content: Text('Could not launch the call on this device')),
         );
       }
     } catch (e) {
-      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error making the call')),
       );

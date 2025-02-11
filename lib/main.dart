@@ -8,23 +8,70 @@ import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
-  TrackingStatus status =
-      await AppTrackingTransparency.requestTrackingAuthorization();
-  bool isTrackingAllowed = status == TrackingStatus.authorized;
-  if (isTrackingAllowed) {
-    // Fetch AppsFlyer dev_key from Firebase Remote Config
-    String devKey = await fetchDevKeyFromRemoteConfig();
-    initAppsFlyer(devKey, isTrackingAllowed);
-  }
+  
   runApp(const MyApp());
+}
+
+class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    initPlugin();
+  }
+
+  Future<void> initPlugin() async {
+    try {
+      final status = await AppTrackingTransparency.trackingAuthorizationStatus;
+      
+      // If not determined, request permission
+      if (status == TrackingStatus.notDetermined) {
+        // Show tracking dialog
+        await Future.delayed(const Duration(milliseconds: 200));
+        final newStatus = await AppTrackingTransparency.requestTrackingAuthorization();
+        
+        final isTrackingAllowed = newStatus == TrackingStatus.authorized;
+        if (isTrackingAllowed) {
+          String devKey = await fetchDevKeyFromRemoteConfig();
+          initAppsFlyer(devKey, isTrackingAllowed);
+        }
+      } else {
+        final isTrackingAllowed = status == TrackingStatus.authorized;
+        if (isTrackingAllowed) {
+          String devKey = await fetchDevKeyFromRemoteConfig();
+          initAppsFlyer(devKey, isTrackingAllowed);
+        }
+      }
+    } catch (e) {
+      print("Error initializing tracking: $e");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Vault Book',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.lightBlue),
+        useMaterial3: true,
+      ),
+      debugShowCheckedModeBanner: false,
+      home: const WelcomeScreen(),
+    );
+  }
 }
 
 Future<String> fetchDevKeyFromRemoteConfig() async {
   final FirebaseRemoteConfig remoteConfig = FirebaseRemoteConfig.instance;
   try {
     await remoteConfig.setDefaults(<String, dynamic>{
-      'dev_key':
-          'TVuiYiPd4Bu5wzUuZwTymX', // Default value if Remote Config fails
+      'dev_key': 'TVuiYiPd4Bu5wzUuZwTymX', // Default value if Remote Config fails
     });
     await remoteConfig.fetchAndActivate();
     String devKey = remoteConfig.getString('dev_key');
@@ -44,13 +91,12 @@ void initAppsFlyer(String devKey, bool isTrackingAllowed) {
       afDevKey: devKey,
       appId: "6741470168",
       showDebug: true,
-      timeToWaitForATTUserAuthorization: timeToWait, // Set based on permission
+      timeToWaitForATTUserAuthorization: timeToWait,
       manualStart: false);
 
   final appsflyerSdk = AppsflyerSdk(options);
 
   if (isTrackingAllowed) {
-    // Initialize AppsFlyer SDK ONLY if tracking is allowed
     appsflyerSdk.initSdk(
         registerConversionDataCallback: true,
         registerOnAppOpenAttributionCallback: true,
@@ -62,22 +108,5 @@ void initAppsFlyer(String devKey, bool isTrackingAllowed) {
     );
   } else {
     print("Tracking denied, skipping AppsFlyer initialization.");
-  }
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Vault Book',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.lightBlue),
-        useMaterial3: true,
-      ),
-      debugShowCheckedModeBanner: false,
-      home: const WelcomeScreen(),
-    );
   }
 }

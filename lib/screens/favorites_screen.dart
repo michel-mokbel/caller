@@ -87,6 +87,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final uri = Uri.parse('tel:$phoneNumber');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not launch the call on this device')),
+      );
     }
   }
 
