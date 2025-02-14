@@ -50,19 +50,20 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBjwV5NccFqfchdsi9moXxJWXjWjBc_O6A',
-    appId: '1:401678566917:android:0456a35ab10426c4e2be6c',
-    messagingSenderId: '401678566917',
-    projectId: 'movie-magic-box',
-    storageBucket: 'movie-magic-box.firebasestorage.app',
+    apiKey: 'AIzaSyAU4ap2DdSTl4uspvkPVXRrGUQ4HFysk3M',
+    appId: '1:752903106834:android:87c33f3d81767b1e37c3cb',
+    messagingSenderId: '752903106834',
+    projectId: 'vault-book',
+    storageBucket: 'vault-book.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDn0wP9eMaG8XmG9SoERvWZudkFRzsEtrw',
-    appId: '1:401678566917:ios:5d666df426cd72dee2be6c',
-    messagingSenderId: '401678566917',
-    projectId: 'movie-magic-box',
-    storageBucket: 'movie-magic-box.firebasestorage.app',
-    iosBundleId: 'com.appadsrocket.caller',
+    apiKey: 'AIzaSyCWEXO_3oRmlCUA95SGAQ7xdLJvzPYINa8',
+    appId: '1:752903106834:ios:ed424018e96fa05937c3cb',
+    messagingSenderId: '752903106834',
+    projectId: 'vault-book',
+    storageBucket: 'vault-book.firebasestorage.app',
+    iosBundleId: 'com.appadsrocket.contactvault',
   );
+
 }

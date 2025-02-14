@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "401678566917",
-    "project_id": "movie-magic-box",
-    "storage_bucket": "movie-magic-box.firebasestorage.app"
+    "project_number": "752903106834",
+    "project_id": "vault-book",
+    "storage_bucket": "vault-book.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:401678566917:android:0456a35ab10426c4e2be6c",
+        "mobilesdk_app_id": "1:752903106834:android:87c33f3d81767b1e37c3cb",
         "android_client_info": {
           "package_name": "com.appadsrocket.contactvault"
         }
@@ -15,45 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBjwV5NccFqfchdsi9moXxJWXjWjBc_O6A"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:401678566917:android:f2dd04e7ca5b9157e2be6c",
-        "android_client_info": {
-          "package_name": "com.mobiapp.moviemagicbox"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBjwV5NccFqfchdsi9moXxJWXjWjBc_O6A"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:401678566917:android:d0c6493fb026734ee2be6c",
-        "android_client_info": {
-          "package_name": "com.mobiapp.sportsmagicbox"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBjwV5NccFqfchdsi9moXxJWXjWjBc_O6A"
+          "current_key": "AIzaSyAU4ap2DdSTl4uspvkPVXRrGUQ4HFysk3M"
         }
       ],
       "services": {

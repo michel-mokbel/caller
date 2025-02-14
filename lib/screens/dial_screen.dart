@@ -148,7 +148,7 @@ class _DialScreenState extends State<DialScreen> {
           const Spacer(),
           Row(
             children: [
-              _buildDialButton('1'),
+              _buildDialButton('1', ''),
               _buildDialButton('2', 'ABC'),
               _buildDialButton('3', 'DEF'),
             ],
@@ -185,7 +185,7 @@ class _DialScreenState extends State<DialScreen> {
               FloatingActionButton(
                 onPressed: _makeCall,
                 backgroundColor: Colors.green,
-                child: const Icon(Icons.call),
+                child: const Icon(Icons.call, color: Colors.white),
               ),
               PopupMenuButton<String>(
                 icon: const Icon(Icons.more_vert),
