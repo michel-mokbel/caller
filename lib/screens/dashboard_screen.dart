@@ -3,7 +3,8 @@ import 'dial_screen.dart';
 import 'contacts_screen.dart';
 import 'favorites_screen.dart';
 import 'settings_screen.dart';
-
+import 'package:unity_ads_plugin/unity_ads_plugin.dart';
+import '../services/ads_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -25,12 +26,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Prepare banner ad
+    AdsService().showBannerAd(BannerPosition.top);
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: Column(
+        children: [
+          // Banner ad at the top
+          UnityBannerAd(
+            placementId: AdsService.getBannerAdUnitId(),
+            onLoad: (placementId) => print('Banner loaded: $placementId'),
+            onClick: (placementId) => print('Banner clicked: $placementId'),
+            onFailed: (placementId, error, message) => 
+              print('Banner failed: $placementId, $error, $message'),
+          ),
+          // Main content
+          Expanded(
+            child: _screens[_selectedIndex],
+          ),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
+        onDestinationSelected: (index) async {
+          // Only show ad when changing tabs (not when tapping the current tab)
+          if (index != _selectedIndex) {
+            // Potentially show an interstitial ad
+            await AdsService().showInterstitialAtTransition();
+          }
+          
           setState(() {
             _selectedIndex = index;
           });

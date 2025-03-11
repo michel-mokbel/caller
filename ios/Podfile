@@ -32,6 +32,9 @@ target 'Runner' do
   use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
 end
 
 post_install do |installer|
@@ -45,23 +48,9 @@ post_install do |installer|
       # Enable permissions
       config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
         '$(inherited)',
-        ## dart: PermissionGroup.camera
-        'PERMISSION_CAMERA=0',
-        ## dart: PermissionGroup.microphone
-        'PERMISSION_MICROPHONE=1',
-        ## dart: PermissionGroup.calendar
-        'PERMISSION_EVENTS=0',
-        ## dart: PermissionGroup.contacts
         'PERMISSION_CONTACTS=1',
-        ## dart: PermissionGroup.location
-        'PERMISSION_LOCATION=0',
-        ## dart: [PermissionGroup.locationAlways, PermissionGroup.locationWhenInUse]
-        'PERMISSION_LOCATION_ALWAYS=0',
-        'PERMISSION_LOCATION_WHEN_IN_USE=0',
-        ## dart: PermissionGroup.notification
-        'PERMISSION_NOTIFICATIONS=1',
-        ## dart: PermissionGroup.phone
         'PERMISSION_PHONE=1',
+        'PERMISSION_APP_TRACKING_TRANSPARENCY=1',
       ]
     end
   end
