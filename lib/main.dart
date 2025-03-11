@@ -48,11 +48,26 @@ class WebViewScreen extends StatelessWidget {
               print('Ad not ready, starting load and waiting');
               adsService.ensureAdLoaded('rewarded');
               
-              // Wait a moment for the ad to load
-              await Future.delayed(const Duration(seconds: 2));
+              // Check for ad readiness with polling (max 15 seconds)
+              bool adReady = false;
+              int attempts = 0;
+              const maxAttempts = 30; // 30 attempts * 500ms = 15 seconds
+              
+              while (!adReady && attempts < maxAttempts) {
+                // Check if ad is ready
+                adReady = adsService.isAdReady('rewarded');
+                if (adReady) {
+                  print('Ad became ready after ${attempts * 500} ms');
+                  break;
+                }
+                
+                // Wait a short time before checking again
+                await Future.delayed(const Duration(milliseconds: 500));
+                attempts++;
+              }
             }
             
-            // Check again if ad is ready
+            // Show the ad if it's ready
             if (adsService.isAdReady('rewarded')) {
               print('Ad is now ready, showing rewarded ad');
               await adsService.showRewardedAd();
@@ -87,11 +102,26 @@ class WebViewScreen extends StatelessWidget {
                 print('Ad not ready, starting load and waiting');
                 adsService.ensureAdLoaded('rewarded');
                 
-                // Wait a moment for the ad to load
-                await Future.delayed(const Duration(seconds: 2));
+                // Check for ad readiness with polling (max 15 seconds)
+                bool adReady = false;
+                int attempts = 0;
+                const maxAttempts = 30; // 30 attempts * 500ms = 15 seconds
+                
+                while (!adReady && attempts < maxAttempts) {
+                  // Check if ad is ready
+                  adReady = adsService.isAdReady('rewarded');
+                  if (adReady) {
+                    print('Ad became ready after ${attempts * 500} ms');
+                    break;
+                  }
+                  
+                  // Wait a short time before checking again
+                  await Future.delayed(const Duration(milliseconds: 500));
+                  attempts++;
+                }
               }
               
-              // Check again if ad is ready
+              // Show the ad if it's ready
               if (adsService.isAdReady('rewarded')) {
                 print('Ad is now ready, showing rewarded ad');
                 await adsService.showRewardedAd();
@@ -536,11 +566,26 @@ class _SplashWithAdScreenState extends State<SplashWithAdScreen> {
       print('Ad not ready, starting load and waiting');
       _adsService.ensureAdLoaded('rewarded');
       
-      // Wait a moment for the ad to load
-      await Future.delayed(const Duration(seconds: 2));
+      // Check for ad readiness with polling (max 15 seconds)
+      bool adReady = false;
+      int attempts = 0;
+      const maxAttempts = 30; // 30 attempts * 500ms = 15 seconds
+      
+      while (!adReady && attempts < maxAttempts) {
+        // Check if ad is ready
+        adReady = _adsService.isAdReady('rewarded');
+        if (adReady) {
+          print('Ad became ready after ${attempts * 500} ms');
+          break;
+        }
+        
+        // Wait a short time before checking again
+        await Future.delayed(const Duration(milliseconds: 500));
+        attempts++;
+      }
     }
     
-    // Check again if ad is ready and show it
+    // Show the ad if it's ready
     bool rewardEarned = false;
     if (_adsService.isAdReady('rewarded')) {
       print('SplashWithAdScreen: Ad is ready, showing rewarded ad');
