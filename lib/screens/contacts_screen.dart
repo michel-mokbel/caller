@@ -4,7 +4,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'contact_tasks_screen.dart';
 import 'regular_contact_details_screen.dart';
-import '../utils/database_helper.dart';
 
 class ContactsScreen extends StatefulWidget {
   const ContactsScreen({super.key});
@@ -21,13 +20,11 @@ class _ContactsScreenState extends State<ContactsScreen> {
   final ScrollController _scrollController = ScrollController();
   String _selectedLetter = '#';
   final Map<String, List<Contact>> _groupedContacts = {};
-  Set<String> _blockedNumbers = {};
 
   @override
   void initState() {
     super.initState();
     _loadContacts();
-    _loadBlockedNumbers();
   }
 
   @override
@@ -55,26 +52,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
         const SnackBar(content: Text('Contacts permission denied')),
       );
     }
-  }
-
-  Future<void> _loadBlockedNumbers() async {
-    final numbers = await DatabaseHelper.instance.getBlockedNumbersSet();
-    setState(() {
-      _blockedNumbers = numbers;
-    });
-  }
-
-  bool _isNumberBlocked(Contact contact) {
-    if (contact.phones == null || contact.phones!.isEmpty) return false;
-    
-    String normalizeNumber(String number) {
-      return number.replaceAll(RegExp(r'[^\d+]'), '');
-    }
-
-    return contact.phones!.any((phone) {
-      final normalizedPhone = normalizeNumber(phone.value ?? '');
-      return _blockedNumbers.any((blocked) => normalizeNumber(blocked) == normalizedPhone);
-    });
   }
 
   void _groupContacts() {
@@ -160,11 +137,9 @@ class _ContactsScreenState extends State<ContactsScreen> {
   }
 
   Widget _buildContactItem(Contact contact) {
-    final isBlocked = _isNumberBlocked(contact);
-    
     return Dismissible(
       key: Key(contact.identifier ?? ''),
-      direction: DismissDirection.horizontal,
+      direction: DismissDirection.endToStart,
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.endToStart) {
           // Delete confirmation
@@ -190,102 +165,8 @@ class _ContactsScreenState extends State<ContactsScreen> {
               );
             },
           );
-        } else {
-          // Block/Unblock confirmation
-          if (contact.phones?.isEmpty ?? true) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('This contact has no phone number to block')),
-            );
-            return false;
-          }
-
-          final phoneNumber = contact.phones!.first.value;
-          final isCurrentlyBlocked = _isNumberBlocked(contact);
-
-          if (isCurrentlyBlocked) {
-            // Unblock confirmation
-            final shouldUnblock = await showDialog<bool>(
-              context: context,
-              builder: (BuildContext context) {
-                return AlertDialog(
-                  title: const Text('Unblock Contact'),
-                  content: Text('Are you sure you want to unblock ${contact.displayName}?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(false),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      child: const Text('Unblock'),
-                    ),
-                  ],
-                );
-              },
-            );
-
-            if (shouldUnblock == true) {
-              await DatabaseHelper.instance.unblockNumber(phoneNumber!);
-              _loadBlockedNumbers();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${contact.displayName} has been unblocked')),
-              );
-            }
-            return false;
-          } else {
-            // Block confirmation
-            final reason = await showDialog<String>(
-              context: context,
-              builder: (BuildContext context) {
-                final reasonController = TextEditingController();
-                return AlertDialog(
-                  title: const Text('Block Contact'),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('Are you sure you want to block ${contact.displayName}?'),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: reasonController,
-                        decoration: const InputDecoration(
-                          labelText: 'Reason (Optional)',
-                          border: OutlineInputBorder(),
-                        ),
-                        maxLines: 2,
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
-                    ),
-                    FilledButton(
-                      onPressed: () => Navigator.of(context).pop(reasonController.text),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.red,
-                      ),
-                      child: const Text('Block'),
-                    ),
-                  ],
-                );
-              },
-            );
-
-            if (reason != null) {
-              await DatabaseHelper.instance.blockNumber(
-                phoneNumber!,
-                contactName: contact.displayName,
-                reason: reason.isNotEmpty ? reason : null,
-              );
-              _loadBlockedNumbers();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('${contact.displayName} has been blocked')),
-              );
-            }
-            return false;
-          }
         }
+        return false;
       },
       onDismissed: (direction) async {
         if (direction == DismissDirection.endToStart) {
@@ -315,12 +196,12 @@ class _ContactsScreenState extends State<ContactsScreen> {
         }
       },
       background: Container(
-        color: Colors.red.shade100,
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 16.0),
+        color: Colors.red,
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 16.0),
         child: const Icon(
-          Icons.block,
-          color: Colors.red,
+          Icons.delete,
+          color: Colors.white,
         ),
       ),
       secondaryBackground: Container(
@@ -341,7 +222,6 @@ class _ContactsScreenState extends State<ContactsScreen> {
             ),
           ).then((_) {
             _loadContacts();
-            _loadBlockedNumbers();
           });
         },
         child: Padding(
@@ -349,7 +229,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: isBlocked ? Colors.red : Theme.of(context).primaryColor,
+                backgroundColor: Theme.of(context).primaryColor,
                 child: Text(
                   contact.displayName?.characters.first.toUpperCase() ?? '?',
                   style: const TextStyle(color: Colors.white),
@@ -365,23 +245,13 @@ class _ContactsScreenState extends State<ContactsScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
-                        color: isBlocked ? Colors.red : null,
                       ),
                     ),
                     if (contact.phones?.isNotEmpty ?? false)
                       Text(
                         contact.phones!.first.value ?? '',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: isBlocked ? Colors.red.shade700 : Colors.grey[600],
-                        ),
-                      ),
-                    if (isBlocked)
-                      Text(
-                        'Blocked Contact',
-                        style: TextStyle(
-                          color: Colors.red.shade700,
-                          fontSize: 12,
-                          fontStyle: FontStyle.italic,
+                          color: Colors.grey[600],
                         ),
                       ),
                   ],
@@ -394,7 +264,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                     IconButton(
                       icon: Icon(
                         Icons.phone,
-                        color: isBlocked ? Colors.red : Colors.grey[600],
+                        color: Colors.grey[600],
                         size: 20,
                       ),
                       onPressed: () => _makeCall(contact.phones!.first.value!),
@@ -402,7 +272,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                     IconButton(
                       icon: Icon(
                         Icons.message,
-                        color: isBlocked ? Colors.red : Colors.grey[600],
+                        color: Colors.grey[600],
                         size: 20,
                       ),
                       onPressed: () => _sendSMS(contact.phones!.first.value!),
@@ -411,7 +281,7 @@ class _ContactsScreenState extends State<ContactsScreen> {
                   IconButton(
                     icon: Icon(
                       Icons.task,
-                      color: isBlocked ? Colors.red : Colors.grey[600],
+                      color: Colors.grey[600],
                       size: 20,
                     ),
                     onPressed: () => _showAddTaskDialog(contact.identifier!),

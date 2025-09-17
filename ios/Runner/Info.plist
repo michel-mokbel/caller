@@ -43,7 +43,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSContactsUsageDescription</key>
-	<string>Caller ID Plus needs access to your contacts to help you organize, encrypt sensitive contacts, block unwanted calls, and manage contact-specific tasks. Your contacts are stored securely on your device and are never uploaded to any servers.</string>
+	<string>Caller ID Plus needs access to your contacts to help you organize, encrypt sensitive contacts, and manage contact-specific tasks. Your contacts are stored securely on your device and are never uploaded to any servers.</string>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>We use this identifier to deliver personalized ads to improve your experience.</string>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

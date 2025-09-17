@@ -31,17 +31,33 @@ class AdsService {
   bool _isRewardedAdReady = false;
   bool _isInterstitialAdReady = false;
   bool _isBannerAdReady = false;
+  bool _adsEnabled = true; // Can be toggled dynamically
+  
+  // Session counters
+  int _rewardedAdsShownThisSession = 0;
+  int _interstitialAdsShownThisSession = 0;
+  
+  // Getters
+  bool get isInitialized => _isInitialized;
+  bool get adsEnabled => _adsEnabled;
   
   // Ad cooldown management
   DateTime? _lastRewardedAdShown;
   DateTime? _lastInterstitialAdShown;
   static const int _adCooldownSeconds = 30;  // Cooldown period between ads
   
+  /// Reset session counters when app starts
+  void resetSessionCounters() {
+    _rewardedAdsShownThisSession = 0;
+    _interstitialAdsShownThisSession = 0;
+    debugPrint('Ad session counters reset');
+  }
+  
   /// Initialize Unity Ads SDK
-  Future<void> initialize() async {
+  Future<bool> initialize() async {
     if (_isInitialized) {
       debugPrint('Unity Ads already initialized');
-      return;
+      return true;
     }
     
     try {
@@ -50,25 +66,54 @@ class AdsService {
       // Determine the correct Game ID based on platform
       const gameId = _iosGameId;
       
-      await UnityAds.init(
+      final completer = Completer<bool>();
+      
+      // Add timeout to prevent infinite waiting
+      Timer(const Duration(seconds: 10), () {
+        if (!completer.isCompleted) {
+          debugPrint('Unity Ads initialization timeout');
+          completer.complete(false);
+        }
+      });
+      
+      UnityAds.init(
         gameId: gameId,
         testMode: false,
         onComplete: () {
           debugPrint('Unity Ads initialization complete');
-          _isInitialized = true;
-          // Load all ad types immediately after initialization
-          _loadAds();
+          if (!completer.isCompleted) {
+            _isInitialized = true;
+            // Load all ad types immediately after initialization
+            _loadAds();
+            completer.complete(true);
+          }
         },
         onFailed: (error, message) {
           debugPrint('Unity Ads initialization failed: $error - $message');
-          // Try to initialize again after a short delay
-          Future.delayed(const Duration(seconds: 3), initialize);
+          if (!completer.isCompleted) {
+            completer.complete(false);
+          }
         },
       );
+      
+      return completer.future;
     } catch (e) {
       debugPrint('Exception during Unity Ads initialization: $e');
-      // Try to initialize again after a short delay
-      Future.delayed(const Duration(seconds: 3), initialize);
+      return false;
+    }
+  }
+  
+  /// Initialize with fallback - tries to initialize but doesn't block the app
+  Future<void> initializeWithFallback() async {
+    try {
+      final success = await initialize();
+      if (!success) {
+        debugPrint('Unity Ads initialization failed, continuing without ads');
+        _adsEnabled = false;
+      }
+    } catch (e) {
+      debugPrint('Unity Ads initialization error, continuing without ads: $e');
+      _adsEnabled = false;
     }
   }
   
@@ -167,6 +212,7 @@ class AdsService {
         onStart: (placementId) {
           debugPrint('Rewarded ad started: $placementId');
           wasAdShown = true;
+          _rewardedAdsShownThisSession++;
         },
         onComplete: (placementId) {
           debugPrint('Rewarded ad completed: $placementId');
@@ -260,6 +306,7 @@ class AdsService {
         onStart: (placementId) {
           debugPrint('Interstitial ad started: $placementId');
           wasAdShown = true;
+          _interstitialAdsShownThisSession++;
         },
         onComplete: (placementId) {
           debugPrint('Interstitial ad completed: $placementId');
@@ -427,7 +474,6 @@ class AdsService {
   
   /// Get the banner ad placement ID
   static String getBannerAdUnitId() {
-
     return _bannerAdUnitId;
   }
   
@@ -466,12 +512,10 @@ class AdsService {
   
   /// Get the appropriate ad unit ID based on platform
   static String getRewardedAdUnitId() {
-
     return _rewardedAdUnitId;
   }
   
   static String getInterstitialAdUnitId() {
-
     return _interstitialAdUnitId;
   }
 }

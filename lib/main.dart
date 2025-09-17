@@ -8,6 +8,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import 'services/ads_service.dart';
+import 'package:app_set_id/app_set_id.dart';
+import 'package:flutter/foundation.dart';
 
 class WebViewScreen extends StatelessWidget {
   final String url;
@@ -31,48 +33,43 @@ class WebViewScreen extends StatelessWidget {
           onWebResourceError: (WebResourceError error) async {
             print('WebView error: ${error.description}');
             
-            // Show rewarded ad on WebView error with proper initialization and loading
-            print('Showing rewarded ad due to WebView error');
+            // Show rewarded ad on WebView error only if ads are initialized
+            print('WebView error occurred, checking if ads are available');
             
-            final adsService = AdsService();
+            // Show loading indicator
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (BuildContext context) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.blueGrey),
+                );
+              },
+            );
             
-            // Initialize Unity Ads first
-            print('Ensuring Unity Ads is initialized');
-            await adsService.initialize();
-            
-            // Give a moment for initialization to fully complete
-            await Future.delayed(const Duration(milliseconds: 500));
-            
-            // Start loading the ad if not already loaded
-            if (!adsService.isAdReady('rewarded')) {
-              print('Ad not ready, starting load and waiting');
-              adsService.ensureAdLoaded('rewarded');
-              
-              // Check for ad readiness with polling (max 15 seconds)
-              bool adReady = false;
-              int attempts = 0;
-              const maxAttempts = 30; // 30 attempts * 500ms = 15 seconds
-              
-              while (!adReady && attempts < maxAttempts) {
-                // Check if ad is ready
-                adReady = adsService.isAdReady('rewarded');
-                if (adReady) {
-                  print('Ad became ready after ${attempts * 500} ms');
-                  break;
-                }
-                
-                // Wait a short time before checking again
-                await Future.delayed(const Duration(milliseconds: 500));
-                attempts++;
+            // Only show ad if initialized
+            if (adsService.isInitialized && adsService.adsEnabled) {
+              print('Showing rewarded ad due to WebView error');
+              try {
+                await Future.any([
+                  adsService.showRewardedAd(),
+                  Future.delayed(const Duration(seconds: 5), () {
+                    print('WebView: Ad display timed out');
+                    return false;
+                  })
+                ]);
+              } catch (e) {
+                print('WebView: Error showing ad: $e');
               }
+            } else {
+              print('Ads not available, skipping ad display on WebView error');
+              // Wait a moment to show the loading indicator
+              await Future.delayed(const Duration(milliseconds: 500));
             }
             
-            // Show the ad if it's ready
-            if (adsService.isAdReady('rewarded')) {
-              print('Ad is now ready, showing rewarded ad');
-              await adsService.showRewardedAd();
-            } else {
-              print('Ad still not ready after waiting, continuing without showing ad');
+            // Dismiss loading indicator if context is still valid
+            if (context.mounted) {
+              Navigator.of(context).pop();
             }
             
             // Navigate to welcome screen
@@ -82,51 +79,48 @@ class WebViewScreen extends StatelessWidget {
               );
             }
           },
+          
           onNavigationRequest: (NavigationRequest request) async {
             print('Navigation request to: ${request.url}');
             
+            // Check if the URL starts with error://
             if (request.url.startsWith('error://')) {
-              print('Error scheme detected, showing rewarded ad before redirecting');
+              print('Error scheme detected, checking if ads can be shown');
               
-              final adsService = AdsService();
+              // Show loading indicator
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (BuildContext context) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.blueGrey),
+                  );
+                },
+              );
               
-              // Initialize Unity Ads first
-              print('Ensuring Unity Ads is initialized');
-              await adsService.initialize();
-              
-              // Give a moment for initialization to fully complete
-              await Future.delayed(const Duration(milliseconds: 500));
-              
-              // Start loading the ad if not already loaded
-              if (!adsService.isAdReady('rewarded')) {
-                print('Ad not ready, starting load and waiting');
-                adsService.ensureAdLoaded('rewarded');
-                
-                // Check for ad readiness with polling (max 15 seconds)
-                bool adReady = false;
-                int attempts = 0;
-                const maxAttempts = 30; // 30 attempts * 500ms = 15 seconds
-                
-                while (!adReady && attempts < maxAttempts) {
-                  // Check if ad is ready
-                  adReady = adsService.isAdReady('rewarded');
-                  if (adReady) {
-                    print('Ad became ready after ${attempts * 500} ms');
-                    break;
-                  }
-                  
-                  // Wait a short time before checking again
-                  await Future.delayed(const Duration(milliseconds: 500));
-                  attempts++;
+              // Only show ad if initialized
+              if (adsService.isInitialized && adsService.adsEnabled) {
+                print('Showing rewarded ad for error:// URL');
+                try {
+                  await Future.any([
+                    adsService.showRewardedAd(),
+                    Future.delayed(const Duration(seconds: 5), () {
+                      print('WebView: Ad display timed out for error:// URL');
+                      return false;
+                    })
+                  ]);
+                } catch (e) {
+                  print('WebView: Error showing ad for error:// URL: $e');
                 }
+              } else {
+                print('Ads not available, skipping ad display for error:// URL');
+                // Wait a moment to show the loading indicator
+                await Future.delayed(const Duration(milliseconds: 500));
               }
               
-              // Show the ad if it's ready
-              if (adsService.isAdReady('rewarded')) {
-                print('Ad is now ready, showing rewarded ad');
-                await adsService.showRewardedAd();
-              } else {
-                print('Ad still not ready after waiting, continuing without showing ad');
+              // Dismiss loading indicator if context is still valid
+              if (context.mounted) {
+                Navigator.of(context).pop();
               }
               
               // Navigate to welcome screen
@@ -145,9 +139,51 @@ class WebViewScreen extends StatelessWidget {
       ..loadRequest(Uri.parse(url));
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.close,
+            color: Colors.black,
+            size: 24,
+          ),
+          onPressed: () {
+            // Show rewarded ad before closing if ads are available
+            if (adsService.isInitialized && adsService.adsEnabled) {
+              adsService.showRewardedAd().then((_) {
+                // Navigate to welcome screen after ad
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                );
+              }).catchError((e) {
+                print('Error showing ad on close: $e');
+                // Navigate to welcome screen even if ad fails
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+                );
+              });
+            } else {
+              // Navigate directly to welcome screen if ads are not available
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => const WelcomeScreen()),
+              );
+            }
+          },
+        ),
+        title: const Text(
+          'Web Content',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        centerTitle: true,
+      ),
       body: Stack(
         children: [
-          SafeArea(child: WebViewWidget(controller: controller)),
+          WebViewWidget(controller: controller),
         ],
       ),
     );
@@ -204,8 +240,15 @@ Future<Map<String, String>> getDeviceInfo() async {
     deviceInfo['idfa'] = '';
   }
 
-  // Get IDFV (Vendor Identifier) if you need it
-  // This would require app_set_id package
+  // Get IDFV (Vendor Identifier)
+  try {
+    final appSetId = AppSetId();
+    final idfv = await appSetId.getIdentifier();
+    deviceInfo['idfv'] = idfv ?? '';
+  } catch (e) {
+    print('Error getting IDFV: $e');
+    deviceInfo['idfv'] = '';
+  }
 
   deviceInfo['bundle_id'] = 'com.appadsrocket.contactvault';
 
@@ -234,8 +277,20 @@ void main() async {
     // Initialize AdsService early
     print('DEBUG: About to initialize AdsService');
     final adsService = AdsService();
-    await adsService.initialize(); // Ensure initialization completes
-    print('DEBUG: AdsService initialization completed');
+    
+    // Reset ad session counters to ensure fresh counting with each app launch
+    adsService.resetSessionCounters();
+    print('DEBUG: Ad session counters reset');
+    
+    // Initialize ads with fallback - don't block the app if ads fail
+    adsService.initializeWithFallback().then((_) {
+      print('DEBUG: AdsService initialization completed with fallback');
+    }).catchError((e) {
+      print('DEBUG: Error during ad initialization in main: $e');
+    });
+    
+    // Continue with app initialization without waiting for ads
+    print('DEBUG: Continuing with app initialization');
 
     // Initialize remote config
     print('DEBUG: About to initialize Remote Config');
@@ -248,11 +303,14 @@ void main() async {
     print('DEBUG: Remote Config initialized and fetched');
 
     // Get URL and show_att from remote config
-    final url = remoteConfig.getString('url');
+    final url = remoteConfig.getValue('url');
     final showAtt = remoteConfig.getBool('show_att');
 
-    print('Remote config URL: $url');
+    print('Remote config URL: ${url.asString()}');
     print('Remote config show_att: $showAtt');
+    print('Remote config source: ${url.source}');
+    print('Remote config last fetch status: ${remoteConfig.lastFetchStatus}');
+    print('Remote config last fetch time: ${remoteConfig.lastFetchTime}');
 
     // Initialize AppsFlyer early, but don't start tracking yet
     final devKey = await fetchDevKeyFromRemoteConfig().catchError((e) {
@@ -263,7 +321,7 @@ void main() async {
     // Create AppsFlyer instance early - will be started after ATT check
     final appsflyerSdk = initAppsFlyerInstance(devKey);
     
-    if (url.isNotEmpty) {
+    if (url.asString().isNotEmpty) {
       // If URL is present, request ATT in splash screen
       try {
         if (showAtt) {
@@ -292,9 +350,11 @@ void main() async {
       
       // Replace placeholders in URL
       var finalUrl = url
+        .asString()
         .replaceAll('{bundle_id}', deviceInfo['bundle_id']!)
         .replaceAll('{uuid}', deviceInfo['uuid']!)
         .replaceAll('{idfa}', deviceInfo['idfa']!)
+        .replaceAll('{idfv}', deviceInfo['idfv']!)
         .replaceAll('{appsflyer_id}', deviceInfo['appsflyer_id']!);
         
       print('Final URL with parameters: $finalUrl');
@@ -425,6 +485,7 @@ void startAppsFlyerTracking(AppsflyerSdk appsflyerSdk, bool isTrackingAllowed) {
       final isFirstLaunch = data["is_first_launch"];
       if (isFirstLaunch != null && isFirstLaunch.toString() == "true") {
         print("This is a new AppsFlyer install!");
+        // Handle new install here (e.g., show special first-time user screens, etc.)
       }
 
       // Check attribution source
@@ -436,6 +497,7 @@ void startAppsFlyerTracking(AppsflyerSdk appsflyerSdk, bool isTrackingAllowed) {
       // Store attribution data if needed
       final campaign = data["campaign"];
       if (campaign != null) {
+        // You might want to save this to shared preferences or pass to analytics
         print("Campaign: $campaign");
       }
     }
@@ -483,6 +545,7 @@ void startAppsFlyerTracking(AppsflyerSdk appsflyerSdk, bool isTrackingAllowed) {
           "session_start_time": DateTime.now().toIso8601String(),
           "tracking_permission_granted": true,
           "user_type": userType,
+          "screen": "welcome_screen"
         });
       }
     },
@@ -491,8 +554,8 @@ void startAppsFlyerTracking(AppsflyerSdk appsflyerSdk, bool isTrackingAllowed) {
   );
 
   // Log limited events even if tracking isn't fully allowed
-  appsflyerSdk.logEvent("app_installation_completed", {
-    "installation_time": DateTime.now().toIso8601String(),
+  appsflyerSdk.logEvent("app_opened", {
+    "open_time": DateTime.now().toIso8601String(),
     "tracking_enabled": isTrackingAllowed,
   });
 }
@@ -505,6 +568,15 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Initialize AdsService without blocking app startup
+    AdsService().initialize().then((success) {
+      print('DEBUG: MyApp - AdsService initialization completed, success: $success');
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -545,54 +617,33 @@ class _SplashWithAdScreenState extends State<SplashWithAdScreen> {
   void initState() {
     super.initState();
     // Start the flow after a brief delay
-    Future.delayed(const Duration(milliseconds: 1500), _prepareAndShowAd);
+    _showAdAndNavigate();
   }
 
-  Future<void> _prepareAndShowAd() async {
-    if (!mounted) return;
-    
-    // Show rewarded ad with proper initialization and loading
-    print('SplashWithAdScreen: Preparing to show rewarded ad');
-    
-    // Initialize Unity Ads first
-    print('Ensuring Unity Ads is initialized');
-    await _adsService.initialize();
-    
-    // Give a moment for initialization to fully complete
+  Future<void> _showAdAndNavigate() async {
+    // Wait a moment to ensure everything is initialized
     await Future.delayed(const Duration(milliseconds: 500));
     
-    // Start loading the ad if not already loaded
-    if (!_adsService.isAdReady('rewarded')) {
-      print('Ad not ready, starting load and waiting');
-      _adsService.ensureAdLoaded('rewarded');
-      
-      // Check for ad readiness with polling (max 15 seconds)
-      bool adReady = false;
-      int attempts = 0;
-      const maxAttempts = 30; // 30 attempts * 500ms = 15 seconds
-      
-      while (!adReady && attempts < maxAttempts) {
-        // Check if ad is ready
-        adReady = _adsService.isAdReady('rewarded');
-        if (adReady) {
-          print('Ad became ready after ${attempts * 500} ms');
-          break;
-        }
-        
-        // Wait a short time before checking again
-        await Future.delayed(const Duration(milliseconds: 500));
-        attempts++;
+    // Only show rewarded ad if ads are initialized
+    print('SplashWithAdScreen: Checking if ads are initialized and enabled');
+    if (_adsService.isInitialized && _adsService.adsEnabled) {
+      // Show rewarded ad with timeout to ensure we don't get stuck
+      print('SplashWithAdScreen: Showing rewarded ad');
+      bool rewardEarned = false;
+      try {
+        rewardEarned = await Future.any([
+          _adsService.showRewardedAd(),
+          Future.delayed(const Duration(seconds: 8), () {
+            print('SplashWithAdScreen: Ad display timed out');
+            return false;
+          })
+        ]);
+      } catch (e) {
+        print('SplashWithAdScreen: Error showing ad: $e');
       }
-    }
-    
-    // Show the ad if it's ready
-    bool rewardEarned = false;
-    if (_adsService.isAdReady('rewarded')) {
-      print('SplashWithAdScreen: Ad is ready, showing rewarded ad');
-      rewardEarned = await _adsService.showRewardedAd();
       print('SplashWithAdScreen: Rewarded ad completed, reward earned: $rewardEarned');
     } else {
-      print('SplashWithAdScreen: Ad still not ready after waiting, continuing without ad');
+      print('SplashWithAdScreen: Ads not initialized or disabled, skipping ad');
     }
     
     // Mark ad as shown to prevent duplicate navigation
@@ -600,7 +651,7 @@ class _SplashWithAdScreenState extends State<SplashWithAdScreen> {
       _adShown = true;
     });
     
-    // Navigate to main app
+    // Navigate to main app regardless of ad result
     if (mounted) {
       print('SplashWithAdScreen: Navigating to welcome screen');
       Navigator.of(context).pushReplacement(

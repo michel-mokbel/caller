@@ -4,7 +4,6 @@ import 'package:flutter_html/flutter_html.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:share_plus/share_plus.dart';
 import 'secure_contacts_screen.dart';
-import 'blocked_numbers_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -189,20 +188,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: const Text('Manage app permissions'),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: _checkPermissions,
-          ),
-          ListTile(
-            leading: const Icon(Icons.block),
-            title: const Text('Blocked Numbers'),
-            subtitle: const Text('Manage blocked contacts and numbers'),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const BlockedNumbersScreen(),
-                ),
-              );
-            },
           ),
         ],
       ),
